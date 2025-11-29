@@ -144,6 +144,21 @@ void AudioEffectDelayStereo_F32::update()
 		acc1 = dly_time - dly_time_flt;
 		dly_time_flt += acc1 * 0.1f;
 		dly_time = dly_time_flt;
+        if(ping_pong_on){  // ws added switch to disable ping pong
+            dly_time_b = dly_time;
+            dly0a_gain = 0.6f;
+            dly0b_gain = 0.6f;
+            //dly1a_gain = 0.6f; // always uses default
+            dly1b_gain = 0.6f;
+        }else{
+            dly_time_b = (float)(dly_length-dly_time_min);
+            mod_rateHz(0.0f); 
+            mod_depth(0.0f);
+            dly0a_gain = 0.0f;
+            dly0b_gain = 0.0f;
+            //dly1a_gain = 0.6f;
+            dly1b_gain = 0.0f;
+        }
 
 		lfo.update();
 
@@ -167,24 +182,25 @@ void AudioEffectDelayStereo_F32::update()
 		acc2 = (float32_t)dly_length - 1.0f - (dly_time + mod_fr[3]);
 		if (acc2 < 0.0f) mod_fr[3] += acc2;		
 
-		acc1 = dly0b.getTapHermite(dly_time+mod_fr[0]);
-		outR = acc1 * 0.6f;
+		acc1 = dly0b.getTapHermite(dly_time_b+mod_fr[0]);
+		outR = acc1 * dly0b_gain;
 		acc1 = flt0R.process(acc1) * feedb;
 		acc1 += blockR->data[i] * inputGain;
 		acc1 = flt1R.process(acc1);
 		acc2 = dly0a.getTapHermite(dly_time+mod_fr[1]);
 		dly0b.write_toOffset(acc2, 0);
-		outL = acc2 * 0.6f;
+		outL = acc2 * dly0a_gain;
+		outR += acc2 * (0.6f - dly0a_gain);
 		dly0a.write_toOffset(acc1, 0);
 
-		acc1 = dly1b.getTapHermite(dly_time+mod_fr[2]);
-		outR += acc1 * 0.6f;
+		acc1 = dly1b.getTapHermite(dly_time_b+mod_fr[2]);
+		outR += acc1 * dly1b_gain;
 		acc1 = flt0L.process(acc1) * feedb;
 		acc1 += blockL->data[i] * inputGain;
 		acc1 = flt1L.process(acc1);
 		acc2 = dly1a.getTapHermite(dly_time+mod_fr[3]);
 		dly1b.write_toOffset(acc2, 0);
-		outL += acc2 * 0.6f;
+		outL += acc2 * dly1a_gain;
 		dly1a.write_toOffset(acc1, 0);
 
 		dly0a.updateIndex();

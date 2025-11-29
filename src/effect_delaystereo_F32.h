@@ -35,6 +35,7 @@
 
 class AudioEffectDelayStereo_F32 : public AudioStream_F32
 {
+    //GUI: inputs:2, outputs:2  //this line used for automatic generation of GUI node
 public:
 	AudioEffectDelayStereo_F32(uint32_t dly_range_ms=400, bool use_psram=false);
 	~AudioEffectDelayStereo_F32(){};
@@ -51,7 +52,7 @@ public:
 		t = t * t;
 		t = map(t, 0.0f, 1.0f, (float32_t)(dly_length-dly_time_min), 0.0f);
 		__disable_irq();
-		if (force) dly_time = t;
+		if (force) {dly_time = t; dly_time_b = t;}
 		dly_time_set = t;
 		__enable_irq();
 	}
@@ -243,6 +244,7 @@ public:
 	void freeze(bool state);
     bool freeze_tgl() {freeze(infinite^1); return infinite;}
     bool freeze_get() {return infinite;}
+    void set_ping_pong_on(bool pong_state) {ping_pong_on = pong_state;} // ws
 	uint32_t tap_tempo(bool avg=true)
 	{
 		int32_t delta;
@@ -314,7 +316,9 @@ private:
 	float32_t bassCut_k = 0.0f;
 	float32_t treble_k = 1.0f;
 	float32_t bass_k = 0.0f;
-	float32_t dly_time, dly_time_set;
+	float32_t dly_time, dly_time_b, dly_time_set;
+	float32_t dly0a_gain = 0.6f, dly0b_gain = 0.6f, dly1a_gain = 0.6f, dly1b_gain = 0.6f;
+    bool ping_pong_on = true;
 	float32_t dly_time_step = 10.0f;
 	static const uint32_t dly_time_min = 128;
 	bool initialized = false;
